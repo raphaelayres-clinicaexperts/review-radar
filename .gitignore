@@ -1,0 +1,32 @@
+# Environment
+.env*
+!.env.example
+
+# Secrets / credenciais
+tokens.json
+github-app.json
+*.pem
+
+# Estado local / sessão (não versionar)
+.radar-local-store.json
+usage-session.json
+review-cost-session.json
+
+# Artefatos gerados (índices, mapas, benchmarks, análises)
+task-index.json
+project-map.json
+project-map.md
+task-benchmark*.json
+task-benchmark-v7-large-keys.json
+task-analyses/
+scripts/task-radar-v7/v7-*.json
+
+# Build
+dist/
+
+# Dependências
+node_modules/
+
+# OS
+.DS_Store
+projetos-base/

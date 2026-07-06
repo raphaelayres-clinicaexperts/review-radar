@@ -1,0 +1,67 @@
+{
+  "blocklistPaths": [
+    "secret",
+    ".sql",
+    "infra",
+    "terraform",
+    "k8s",
+    "gitops",
+    ".github/workflows",
+    ".github/codeowners",
+    "dockerfile",
+    "docker-compose",
+    ".env"
+  ],
+  "size": {
+    "shipMaxLines": 80,
+    "showMaxLines": 400,
+    "askMinLines": 800
+  },
+  "drs": {
+    "appetite": "P25",
+    "criticalAreas": [
+      "auth",
+      "payment",
+      "billing",
+      "core",
+      "gateway",
+      "webhook",
+      "migration"
+    ]
+  },
+  "codex": {
+    "enabled": true,
+    "model": "gpt-5.4-mini",
+    "reasoningEffort": "high",
+    "shipConcordance": 2,
+    "maxLinesForCodex": 600,
+    "minConfidenceToShip": 8,
+    "runOnlyWhenRiskBetween": [
+      "low",
+      "medium"
+    ],
+    "minConfidenceToBlock": 5
+  },
+  "trustedBots": [
+    "dependabot[bot]",
+    "renovate[bot]"
+  ],
+  "autoMerge": {
+    "enabled": false,
+    "minConfidence": 9,
+    "maxLines": 60,
+    "allowAuthors": [
+      "dependabot[bot]",
+      "renovate[bot]"
+    ]
+  },
+  "softFlagPaths": [
+    "auth",
+    "security",
+    "payment",
+    "pagamento",
+    "billing",
+    "cobranc",
+    "clini-pago"
+  ]
+}

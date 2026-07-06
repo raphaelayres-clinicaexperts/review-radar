@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — Exatamente como aparece no GitHub</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --border: #30363d;
+    --text: #e6edf3; --text2: #c9d1d9; --text3: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+  .page-header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 32px; }
+  .page-header h1 { font-size: 16px; color: var(--text3); }
+
+  .section-title { color: var(--text3); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 24px 32px 8px; }
+
+  /* GitHub comment box */
+  .gh-timeline { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  .gh-comment-wrap { display: flex; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .gh-avatar { width: 40px; height: 40px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .gh-comment-box { flex: 1; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .gh-comment-header { background: #161b22; border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text3); }
+  .gh-comment-header strong { color: var(--text); }
+  .gh-comment-body { padding: 16px; font-size: 14px; color: var(--text2); }
+
+  /* GitHub markdown rendering */
+  .md h3 { font-size: 17px; color: var(--text); margin: 0 0 8px; border-bottom: none; }
+  .md p { margin: 8px 0; }
+  .md hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .md strong { color: var(--text); }
+  .md code { background: rgba(110,118,129,.4); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .md table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  .md th { text-align: left; background: #161b22; font-size: 13px; color: var(--text3); padding: 6px 12px; border: 1px solid var(--border); }
+  .md td { padding: 6px 12px; border: 1px solid var(--border); font-size: 13px; }
+  .md blockquote { border-left: 3px solid var(--border); padding: 4px 12px; margin: 8px 0; color: var(--text3); }
+  .md ul, .md ol { padding-left: 24px; margin: 8px 0; }
+  .md li { margin: 4px 0; }
+  .md sub { font-size: 11px; color: var(--text3); }
+  .md details { margin: 8px 0; }
+  .md summary { cursor: pointer; color: var(--blue); font-weight: 600; font-size: 13px; }
+  .md details[open] summary { margin-bottom: 8px; }
+  .md .diff-block { background: #161b22; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin: 8px 0; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; white-space: pre-wrap; color: var(--text2); }
+
+  /* Inline review comment simulation */
+  .diff-file { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  .diff-header { background: #161b22; border: 1px solid var(--border); border-radius: 6px 6px 0 0; padding: 8px 16px; font-size: 13px; color: var(--text2); font-family: monospace; }
+  .diff-line { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; padding: 2px 16px; border-left: 1px solid var(--border); border-right: 1px solid var(--border); display: flex; }
+  .diff-line .num { color: var(--text3); width: 50px; text-align: right; padding-right: 12px; user-select: none; flex-shrink: 0; }
+  .diff-line .code { flex: 1; white-space: pre-wrap; }
+  .diff-add { background: rgba(63,185,80,.15); }
+  .diff-add .code { color: var(--green); }
+  .diff-ctx { background: var(--bg); }
+  .diff-rem { background: rgba(248,81,73,.15); }
+  .diff-rem .code { color: var(--red); }
+  .diff-hunk { background: rgba(88,166,255,.1); color: var(--blue); font-size: 11px; font-family: monospace; padding: 4px 16px; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+
+  .inline-comment { border: 1px solid var(--border); border-left: 3px solid var(--blue); margin: 0; background: #161b22; }
+  .inline-comment .ic-header { padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 8px; }
+  .inline-comment .ic-header strong { color: var(--text); }
+  .inline-comment .ic-body { padding: 12px 16px; font-size: 13px; color: var(--text2); }
+  .inline-comment .ic-body code { background: rgba(110,118,129,.4); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .inline-comment .ic-body strong { color: var(--text); }
+
+  .separator { max-width: 860px; margin: 32px auto; border-top: 2px dashed var(--border); }
+
+  .label { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-right: 4px; }
+  .label-red { background: #da363330; color: var(--red); border: 1px solid #da363355; }
+  .label-yellow { background: #d2992230; color: var(--yellow); border: 1px solid #d2992255; }
+  .label-blue { background: #58a6ff30; color: var(--blue); border: 1px solid #58a6ff55; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Preview — Como aparece no GitHub (PR #4570)</h1>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PARTE 1: Comentário RADAR + Gabi na timeline   -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="section-title">Parte 1 — Comentário na timeline (via --comment)</div>
+
+<div class="gh-timeline">
+  <div class="gh-comment-wrap">
+    <div class="gh-avatar">🤖</div>
+    <div class="gh-comment-box">
+      <div class="gh-comment-header">
+        <strong>chatgpt-codex-connector</strong> <span>bot</span> commented just now
+      </div>
+      <div class="gh-comment-body md">
+
+<!-- O markdown que o GitHub renderiza começa aqui -->
+<h3>🔴 SEGURA &nbsp;—&nbsp; revisão humana obrigatória</h3>
+
+<table>
+<tr><td>⛔ <strong>2</strong> issues</td><td>💡 <strong>1</strong> sugestão</td><td>❓ <strong>1</strong> dúvida</td><td>📊 <strong>2.831</strong> tokens</td><td>💰 <strong>$0</strong></td></tr>
+</table>
+
+<details>
+<summary>🛡️ Gates — elegibilidade · CI · risco</summary>
+<br>
+
+<table>
+<tr><th>Gate</th><th>Status</th><th>Detalhe</th></tr>
+<tr><td>Gate 0</td><td>✅ elegível</td><td>Nenhum path crítico</td></tr>
+<tr><td>CI</td><td>⏳ pending</td><td>1 check pendente</td></tr>
+<tr><td>DRS</td><td>✅ low (0/100)</td><td>PR pequeno (46 linhas, 1 arquivo)</td></tr>
+<tr><td>Codex</td><td>🔴 block (4/10)</td><td>2 issues encontrados</td></tr>
+</table>
+
+</details>
+
+<hr>
+
+<h3>🛡️ Revisão Semântica (RADAR)</h3>
+<p>Risco de quebrar edição/salvamento do resumo para formatos não-HTML e de propagar objetos para componente que espera string.</p>
+
+<blockquote>
+⛔ <strong>issue</strong> · <code>SummaryView.vue:102</code><br>
+<code>normalizeSummaryContent()</code> pode retornar o <strong>objeto original</strong> quando nenhum formato conhecido bate. O editor espera string HTML — receber objeto quebra renderização.<br>
+<br>
+💡 <strong>fix:</strong> Retornar <code>''</code> ou fallback serializado em vez de <code>return value</code> no branch de objeto.
+</blockquote>
+
+<blockquote>
+⛔ <strong>issue</strong> · <code>SummaryView.vue:148</code><br>
+<code>onEditorInput()</code> descarta silenciosamente payload não-string. Edição do usuário pode ser <strong>perdida sem aviso</strong>.<br>
+<br>
+💡 <strong>fix:</strong> Normalizar payload antes de emitir ou validar contrato do componente.
+</blockquote>
+
+<hr>
+
+<h3>👩‍💻 Gabi Reviewer</h3>
+
+<blockquote>
+❓ <strong>Dúvida</strong> · <code>SummaryView.vue:43</code> · <em>Justificativa</em><br>
+Apenas uma dúvida: qual é o formato oficial que esse <code>summary</code> pode receber? O normalizador aceita <code>html</code>, <code>summary.html</code>, <code>content.html</code> e JSON string — não entendi se é contrato de integração ou correção pontual do hotfix.
+</blockquote>
+
+<blockquote>
+💡 <strong>Sugestão</strong> · <code>SummaryView.vue:61</code> · <em>try/catch</em><br>
+Não seria interessante ter um try catch aqui com tratativa mais explícita? Hoje qualquer JSON inválido volta o valor original — se vier corrompido em produção, fica difícil identificar o bug reportável.
+</blockquote>
+
+<details>
+<summary>📋 Comentário pronto pra colar (estilo Gabi)</summary>
+<br>
+<p><strong>app/src/modules/appointment/components/recorder/SummaryView.vue</strong></p>
+<ul>
+<li>Apenas uma dúvida: qual é o formato oficial que esse <code>summary</code> pode receber? Porque hoje o normalizador está aceitando várias estruturas diferentes (<code>html</code>, <code>summary.html</code>, <code>content.html</code> e JSON string), e eu não entendi se isso é um contrato de integração ou só uma correção pontual do hotfix.</li>
+<li>Não seria interessante ter um try catch aqui com uma tratativa mais explícita? Porque hoje qualquer JSON inválido só volta o valor original, e se esse conteúdo vier corrompido em produção fica difícil identificar o bug reportável.</li>
+</ul>
+</details>
+
+<sub>🤖 RADAR + Gabi (shadow) · sugestão automática, não bloqueia · decisão final é humana</sub>
+
+<!-- Fim do markdown -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PARTE 2: Review inline nos arquivos (--review) -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="separator"></div>
+<div class="section-title">Parte 2 — Comentários inline no diff (via --review)</div>
+
+<div class="diff-file">
+  <div class="diff-header">app/src/modules/appointment/components/recorder/SummaryView.vue</div>
+
+  <div class="diff-hunk">@@ -100,6 +102,48 @@ export default {</div>
+  <div class="diff-line diff-ctx"><span class="num">101</span><span class="code">  },</span></div>
+  <div class="diff-line diff-ctx"><span class="num">102</span><span class="code">  methods: {</span></div>
+  <div class="diff-line diff-add"><span class="num">103</span><span class="code">+    normalizeSummaryContent(value) {</span></div>
+  <div class="diff-line diff-add"><span class="num">104</span><span class="code">+      if (value == null || value === '') {</span></div>
+  <div class="diff-line diff-add"><span class="num">105</span><span class="code">+        return '';</span></div>
+  <div class="diff-line diff-add"><span class="num">106</span><span class="code">+      }</span></div>
+  <div class="diff-line diff-add"><span class="num">107</span><span class="code">+      if (typeof value === 'object') {</span></div>
+  <div class="diff-line diff-add"><span class="num">108</span><span class="code">+        if (typeof value.html === 'string' && value.html.trim()) {</span></div>
+  <div class="diff-line diff-add"><span class="num">109</span><span class="code">+          return value.html;</span></div>
+  <div class="diff-line diff-add"><span class="num">110</span><span class="code">+        }</span></div>
+  <div class="diff-line diff-add"><span class="num">111</span><span class="code">+        ...</span></div>
+  <div class="diff-line diff-add"><span class="num">112</span><span class="code">+        return value;  // ← retorna objeto!</span></div>
+  <div class="diff-line diff-add"><span class="num">113</span><span class="code">+      }</span></div>
+
+  <!-- Inline comment do RADAR -->
+  <div class="inline-comment">
+    <div class="ic-header">
+      🤖 <strong>chatgpt-codex-connector</strong> bot &nbsp;·&nbsp; <span class="label label-red">issue</span>
+    </div>
+    <div class="ic-body">
+      <p>⛔ <strong>[issue:]</strong> <code>normalizeSummaryContent()</code> pode retornar o <strong>objeto original</strong> quando nenhum formato conhecido bate (<code>.html</code>, <code>.summary.html</code>, <code>.content.html</code>). O editor espera string HTML — receber objeto quebra renderização.</p>
+      <p><strong>💡 fix sugerido:</strong><br>Retornar <code>''</code> ou um fallback serializado seguro em vez de <code>return value</code> no branch de objeto.</p>
+    </div>
+  </div>
+
+  <div class="diff-line diff-add"><span class="num">130</span><span class="code">+      try {</span></div>
+  <div class="diff-line diff-add"><span class="num">131</span><span class="code">+        const parsed = JSON.parse(trimmed);</span></div>
+  <div class="diff-line diff-add"><span class="num">132</span><span class="code">+        return this.normalizeSummaryContent(parsed);</span></div>
+  <div class="diff-line diff-add"><span class="num">133</span><span class="code">+      } catch (error) {</span></div>
+  <div class="diff-line diff-add"><span class="num">134</span><span class="code">+        return value;</span></div>
+  <div class="diff-line diff-add"><span class="num">135</span><span class="code">+      }</span></div>
+
+  <!-- Inline comment da Gabi -->
+  <div class="inline-comment">
+    <div class="ic-header">
+      🤖 <strong>chatgpt-codex-connector</strong> bot &nbsp;·&nbsp; <span class="label label-yellow">sugestão</span> &nbsp;·&nbsp; <span style="color: #8b949e; font-size: 11px;">Gabi Reviewer</span>
+    </div>
+    <div class="ic-body">
+      <p>💡 <strong>[sugestão:]</strong> Não seria interessante ter um try catch aqui com uma tratativa mais explícita? Porque hoje qualquer JSON inválido só volta o valor original, e se esse conteúdo vier corrompido em produção fica difícil identificar o bug reportável.</p>
+    </div>
+  </div>
+
+  <div class="diff-line diff-ctx"><span class="num">148</span><span class="code">     onEditorInput(event) {</span></div>
+  <div class="diff-line diff-ctx"><span class="num">149</span><span class="code">       const value = typeof event === 'string' ? event : '';</span></div>
+  <div class="diff-line diff-ctx"><span class="num">150</span><span class="code">       this.$emit('update:summary', value);</span></div>
+
+  <!-- Inline comment do RADAR -->
+  <div class="inline-comment">
+    <div class="ic-header">
+      🤖 <strong>chatgpt-codex-connector</strong> bot &nbsp;·&nbsp; <span class="label label-red">issue</span>
+    </div>
+    <div class="ic-body">
+      <p>⛔ <strong>[issue:]</strong> <code>onEditorInput()</code> descarta silenciosamente payload não-string. Se o editor emitir objeto após as novas extensions, a edição do usuário é <strong>perdida sem aviso</strong>.</p>
+      <p><strong>💡 fix sugerido:</strong><br>Normalizar o payload do editor antes de emitir, ou validar contrato do componente.</p>
+    </div>
+  </div>
+
+  <div style="border: 1px solid #30363d; border-radius: 0 0 6px 6px; height: 4px; background: #0d1117;"></div>
+</div>
+
+<div style="padding: 40px;"></div>
+
+</body>
+</html>

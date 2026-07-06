@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR Dashboard — Radar</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #1c2128; --border: #30363d;
+    --text: #e6edf3; --text2: #c9d1d9; --text3: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+    --purple: #bc8cff; --orange: #f0883e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .topbar h1 { font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .topbar .badge { background: var(--blue); color: #000; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .btn { border: 1px solid var(--border); background: var(--bg3); color: var(--text2); padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all .15s; }
+  .btn:hover { background: var(--bg2); border-color: var(--text3); }
+  .btn-primary { background: #238636; border-color: #2ea043; color: #fff; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .filters { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-group label { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .filter-group select, .filter-group input { background: var(--bg); border: 1px solid var(--border); color: var(--text2); padding: 5px 10px; border-radius: 6px; font-size: 13px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 24px; }
+
+  .status-bar { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: var(--text3); font-size: 13px; }
+  .status-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: var(--green); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-red { background: var(--red); }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty h2 { font-size: 18px; margin-bottom: 8px; color: var(--text2); }
+
+  .loading { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .pr-list { display: flex; flex-direction: column; gap: 2px; }
+
+  .pr-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 8px; transition: all .15s; cursor: pointer; }
+  .pr-card:hover { border-color: var(--text3); background: var(--bg3); }
+  .pr-card.reviewing { border-color: var(--yellow); border-left: 3px solid var(--yellow); }
+  .pr-card.reviewed { border-color: var(--green); border-left: 3px solid var(--green); opacity: .8; }
+  .pr-card.review-error { border-color: var(--red); border-left: 3px solid var(--red); }
+
+  .pr-main { min-width: 0; }
+  .pr-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .jira-key { font-size: 12px; font-weight: 700; color: var(--blue); text-decoration: none; background: rgba(88,166,255,.12); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+  .jira-key:hover { text-decoration: underline; }
+  .pr-title { font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+  .pr-meta { font-size: 12px; color: var(--text3); display: flex; gap: 12px; flex-wrap: wrap; margin-top: 2px; }
+  .pr-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .pr-prs { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .pr-ref { font-size: 12px; font-family: "SFMono-Regular", Consolas, monospace; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .pr-ref a { color: var(--blue); text-decoration: none; }
+  .pr-ref a:hover { text-decoration: underline; }
+
+  .pr-actions { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; }
+
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
+  .tag-status { background: rgba(188,140,255,.15); color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
+  .tag-type { background: rgba(88,166,255,.12); color: var(--blue); border: 1px solid rgba(88,166,255,.25); }
+  .tag-team { background: rgba(240,136,62,.15); color: var(--orange); border: 1px solid rgba(240,136,62,.3); }
+  .tag-sprint { background: rgba(63,185,80,.12); color: var(--green); border: 1px solid rgba(63,185,80,.25); }
+  .tag-label { background: rgba(139,148,158,.15); color: var(--text3); border: 1px solid rgba(139,148,158,.25); }
+
+  .pr-context { font-size: 12px; color: var(--text3); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pr-context a { color: var(--blue); text-decoration: none; }
+  .pr-context a:hover { text-decoration: underline; }
+  .parent-link { display: flex; align-items: center; gap: 4px; }
+  .tag-priority-high { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+  .tag-priority-medium { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+  .tag-priority-low { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+
+  .route-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .route-SHIP { background: rgba(63,185,80,.2); color: var(--green); border: 1px solid rgba(63,185,80,.4); }
+  .route-SHOW { background: rgba(210,153,34,.2); color: var(--yellow); border: 1px solid rgba(210,153,34,.4); }
+  .route-ASK  { background: rgba(248,81,73,.2); color: var(--red); border: 1px solid rgba(248,81,73,.4); }
+
+  .review-result { margin-top: 10px; display: none; }
+  .review-result.visible { display: block; }
+
+  .review-box { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .review-box-header { background: var(--bg3); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .review-box-body { padding: 16px; font-size: 14px; color: var(--text2); background: var(--bg); }
+
+  .review-box-body h3 { font-size: 16px; color: var(--text); margin: 0 0 10px; }
+  .review-box-body p { margin: 6px 0; }
+  .review-box-body hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .review-box-body strong { color: var(--text); }
+  .review-box-body em { color: var(--text3); }
+  .review-box-body code { background: rgba(110,118,129,.4); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "SFMono-Regular", Consolas, monospace; }
+  .review-box-body table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  .review-box-body th { text-align: center; background: var(--bg2); font-size: 13px; color: var(--text3); padding: 6px 12px; border: 1px solid var(--border); }
+  .review-box-body td { padding: 6px 12px; border: 1px solid var(--border); font-size: 13px; text-align: center; }
+  .review-box-body blockquote { border-left: 3px solid var(--border); padding: 6px 14px; margin: 10px 0; color: var(--text2); background: rgba(22,27,34,.5); border-radius: 0 6px 6px 0; }
+  .review-box-body blockquote p { margin: 4px 0; }
+  .review-box-body ul, .review-box-body ol { padding-left: 24px; margin: 8px 0; }
+  .review-box-body li { margin: 4px 0; }
+  .review-box-body sub { font-size: 11px; color: var(--text3); }
+  .review-box-body details { margin: 8px 0; }
+  .review-box-body summary { cursor: pointer; color: var(--blue); font-weight: 600; font-size: 13px; }
+  .review-box-body details[open] summary { margin-bottom: 8px; }
+  .review-box-body pre { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; white-space: pre-wrap; color: var(--text3); max-height: 400px; overflow-y: auto; margin-top: 8px; background: var(--bg2); padding: 12px; border-radius: 6px; border: 1px solid var(--border); }
+  .review-box-body br { display: block; margin: 2px 0; }
+
+  .review-toggle { margin-top: 6px; font-size: 12px; color: var(--blue); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .review-toggle:hover { text-decoration: underline; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; font-size: 13px; color: var(--text2); box-shadow: 0 4px 12px rgba(0,0,0,.4); transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 100; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>PR Dashboard <span class="badge" id="total-badge">0</span></h1>
+  <div class="topbar-actions">
+    <span id="last-refresh" style="font-size: 12px; color: var(--text3);"></span>
+    <button class="btn" onclick="loadPrs()" id="refresh-btn">Atualizar</button>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-group">
+    <label>Filtrar</label>
+    <select id="filter-has-pr">
+      <option value="all">Todas issues</option>
+      <option value="with-pr" selected>Com PR linkada</option>
+      <option value="no-pr">Sem PR</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Prioridade</label>
+    <select id="filter-priority">
+      <option value="all">Todas</option>
+      <option value="Highest">Highest</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+      <option value="Low">Low</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Time</label>
+    <select id="filter-team">
+      <option value="all">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>JQL customizada</label>
+    <input type="text" id="custom-jql" placeholder='ex: project = "MEU" AND ...' style="width: 320px;">
+  </div>
+  <button class="btn btn-primary" onclick="loadPrs()" style="margin-left: auto;">Buscar</button>
+</div>
+
+<div class="container">
+  <div class="status-bar" id="status-bar">
+    <div class="dot dot-green"></div>
+    <span>Pronto</span>
+  </div>
+
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Carregando issues do Jira...</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = window.location.origin;
+let JIRA_BASE = '';
+let allIssues = [];
+let reviewResults = {};
+
+function showToast(msg, durationMs = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), durationMs);
+}
+
+function setStatus(text, color = 'green') {
+  const bar = document.getElementById('status-bar');
+  bar.innerHTML = `<div class="dot dot-${color}"></div><span>${text}</span>`;
+}
+
+function priortyTag(p) {
+  const low = ['low', 'lowest', 'trivial'];
+  const high = ['high', 'highest', 'critical', 'blocker'];
+  if (low.includes((p || '').toLowerCase())) return 'tag-priority-low';
+  if (high.includes((p || '').toLowerCase())) return 'tag-priority-high';
+  return 'tag-priority-medium';
+}
+
+function prRefToUrl(ref) {
+  const m = ref.match(/^([^/]+)\/([^#]+)#(\d+)$/);
+  if (!m) return '#';
+  return `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}`;
+}
+
+function relativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m atrás`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h atrás`;
+  const days = Math.floor(hours / 24);
+  return `${days}d atrás`;
+}
+
+function renderIssues(issues) {
+  const content = document.getElementById('content');
+  document.getElementById('total-badge').textContent = issues.length;
+
+  if (issues.length === 0) {
+    content.innerHTML = `
+      <div class="empty">
+        <h2>Nenhuma issue encontrada</h2>
+        <p>Ajuste os filtros ou a JQL customizada.</p>
+      </div>`;
+    return;
+  }
+
+  content.innerHTML = `<div class="pr-list">${issues.map((issue, i) => {
+    const state = reviewResults[issue.key];
+    const stateClass = state?.status === 'reviewing' ? 'reviewing'
+      : state?.status === 'done' ? 'reviewed'
+      : state?.status === 'error' ? 'review-error' : '';
+
+    return `
+    <div class="pr-card ${stateClass}" id="card-${issue.key}" data-idx="${i}">
+      <div class="pr-main">
+        <div class="pr-top">
+          <a class="jira-key" href="${issue.url}" target="_blank" onclick="event.stopPropagation()">${issue.key}</a>
+          <span class="pr-title">${esc(issue.summary)}</span>
+        </div>
+        <div class="pr-meta">
+          <span><span class="tag tag-status">${esc(issue.status)}</span></span>
+          <span><span class="tag tag-type">${esc(issue.issueType)}</span></span>
+          <span><span class="tag ${priortyTag(issue.priority)}">${esc(issue.priority)}</span></span>
+          ${issue.components.length ? issue.components.map(c => `<span><span class="tag tag-team">${esc(c)}</span></span>`).join('') : ''}
+          ${issue.sprint ? `<span><span class="tag tag-sprint">${esc(issue.sprint)}</span></span>` : ''}
+          ${issue.assignee ? `<span>👤 ${esc(issue.assignee)}</span>` : ''}
+          <span>🕐 ${relativeTime(issue.updated)}</span>
+        </div>
+        ${(issue.parent || issue.epic || issue.labels.length) ? `
+        <div class="pr-context">
+          ${issue.parent ? `<span class="parent-link">↑ <a href="${JIRA_BASE}/browse/${issue.parent.key}" target="_blank" onclick="event.stopPropagation()">${esc(issue.parent.key)}</a> <span style="color:var(--text3)">${esc(issue.parent.summary.slice(0,60))}</span> <span class="tag tag-type" style="font-size:10px">${esc(issue.parent.type)}</span></span>` : ''}
+          ${issue.labels.map(l => `<span class="tag tag-label">${esc(l)}</span>`).join('')}
+        </div>` : ''}
+        ${issue.prRefs.length > 0 ? `
+        <div class="pr-prs">
+          ${issue.prRefs.map(ref => `
+            <div class="pr-ref">
+              <span>↗</span>
+              <a href="${prRefToUrl(ref)}" target="_blank" onclick="event.stopPropagation()">${esc(ref)}</a>
+              ${state?.route ? `<span class="route-badge route-${state.route}">${state.route}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>` : '<div class="pr-meta" style="margin-top:6px;"><span style="color:var(--text3)">Sem PR linkada</span></div>'}
+        <div class="review-result ${state?.result ? 'visible' : ''}" id="result-${issue.key}">
+          ${state?.result ? state.result : ''}
+        </div>
+      </div>
+      <div class="pr-actions">
+        ${issue.prRefs.length > 0 ? `
+          <button class="btn btn-primary" onclick="event.stopPropagation(); reviewIssue('${issue.key}', ${i})" ${state?.status === 'reviewing' ? 'disabled' : ''}>
+            ${state?.status === 'reviewing' ? 'Analisando...' : state?.status === 'done' ? 'Re-analisar' : 'Analisar'}
+          </button>
+        ` : ''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function rebuildTeamFilter() {
+  const sel = document.getElementById('filter-team');
+  const teams = new Set();
+  for (const i of allIssues) {
+    for (const c of (i.components || [])) teams.add(c);
+    for (const l of (i.labels || [])) {
+      if (l.toLowerCase().startsWith('team-') || l.toLowerCase().startsWith('squad-')) teams.add(l);
+    }
+  }
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">Todos</option>';
+  for (const t of [...teams].sort()) {
+    sel.innerHTML += `<option value="${esc(t)}">${esc(t)}</option>`;
+  }
+  sel.value = prev || 'all';
+}
+
+function applyFilters() {
+  const hasPr = document.getElementById('filter-has-pr').value;
+  const priority = document.getElementById('filter-priority').value;
+  const team = document.getElementById('filter-team').value;
+
+  let filtered = allIssues;
+  if (hasPr === 'with-pr') filtered = filtered.filter(i => i.prRefs.length > 0);
+  if (hasPr === 'no-pr') filtered = filtered.filter(i => i.prRefs.length === 0);
+  if (priority !== 'all') filtered = filtered.filter(i => (i.priority || '').toLowerCase() === priority.toLowerCase());
+  if (team !== 'all') filtered = filtered.filter(i =>
+    (i.components || []).includes(team) || (i.labels || []).includes(team)
+  );
+
+  renderIssues(filtered);
+}
+
+async function loadPrs() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  setStatus('Buscando issues do Jira...', 'yellow');
+
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div><p>Carregando issues do Jira...</p></div>`;
+
+  try {
+    const customJql = document.getElementById('custom-jql').value.trim();
+    const params = customJql ? `?jql=${encodeURIComponent(customJql)}` : '';
+    const res = await fetch(`${API_BASE}/prs${params}`);
+    if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    allIssues = data.issues || [];
+    if (allIssues.length && allIssues[0].url) {
+      const m = allIssues[0].url.match(/^(https?:\/\/[^/]+)/);
+      if (m) JIRA_BASE = m[1];
+    }
+    setStatus(`${allIssues.length} issues carregadas`, 'green');
+    document.getElementById('last-refresh').textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
+    rebuildTeamFilter();
+    applyFilters();
+  } catch (err) {
+    setStatus(`Erro: ${err.message}`, 'red');
+    content.innerHTML = `<div class="empty"><h2>Erro ao carregar</h2><p>${esc(err.message)}</p></div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function reviewIssue(key, idx) {
+  const issue = allIssues[idx];
+  if (!issue || issue.prRefs.length === 0) return;
+
+  const prRef = issue.prRefs[0];
+  reviewResults[key] = { status: 'reviewing' };
+  applyFilters();
+  setStatus(`Analisando ${key} (${prRef})...`, 'yellow');
+  showToast(`Iniciando análise de ${key}...`);
+
+  try {
+    const res = await fetch(`${API_BASE}/review?pr=${encodeURIComponent(prRef)}&no-codex=0`);
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+
+    const route = data.radar?.route || '?';
+    const routeColor = route === 'SHIP' ? 'green' : route === 'SHOW' ? 'yellow' : 'red';
+    const routeIcon = route === 'SHIP' ? '🟢' : route === 'SHOW' ? '🟡' : '🔴';
+    const rawMarkdown = data.markdown || data.text || '';
+    const renderedHtml = marked.parse(rawMarkdown, { breaks: true, gfm: true });
+    const pr = data.pr || {};
+
+    reviewResults[key] = {
+      status: 'done',
+      route,
+      result: `
+        <div class="review-box">
+          <div class="review-box-header">
+            <span class="route-badge route-${route}">${route}</span>
+            <span style="color:var(--text3)">
+              ${pr.title ? esc(pr.title) : esc(prRef)}
+              ${pr.additions != null ? ` · <span style="color:var(--green)">+${pr.additions}</span> <span style="color:var(--red)">-${pr.deletions}</span> · ${pr.changedFiles} arquivo(s)` : ''}
+            </span>
+          </div>
+          <div class="review-box-body">${renderedHtml}</div>
+        </div>
+        <details style="margin-top:8px;">
+          <summary class="review-toggle">Ver dados completos (JSON)</summary>
+          <pre style="font-family:'SFMono-Regular',Consolas,monospace;font-size:12px;white-space:pre-wrap;color:var(--text3);max-height:400px;overflow-y:auto;margin-top:8px;background:var(--bg2);padding:12px;border-radius:6px;border:1px solid var(--border);">${esc(JSON.stringify(data, null, 2))}</pre>
+        </details>
+      `
+    };
+    setStatus(`${key} analisado: ${routeIcon} ${route}`, routeColor);
+    showToast(`${key}: ${routeIcon} ${route}`);
+  } catch (err) {
+    reviewResults[key] = {
+      status: 'error',
+      result: `<div class="review-box"><div class="review-box-header"><span style="color:var(--red)">Erro</span></div><div class="review-box-body"><p style="color:var(--red)">${esc(err.message)}</p></div></div>`
+    };
+    setStatus(`Erro ao analisar ${key}`, 'red');
+    showToast(`Erro: ${err.message}`);
+  }
+
+  applyFilters();
+}
+
+document.getElementById('filter-has-pr').addEventListener('change', applyFilters);
+document.getElementById('filter-priority').addEventListener('change', applyFilters);
+document.getElementById('filter-team').addEventListener('change', applyFilters);
+
+loadPrs();
+</script>
+</body>
+</html>

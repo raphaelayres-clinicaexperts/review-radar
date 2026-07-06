@@ -1,0 +1,21 @@
+[
+  {
+    "domain": "financeiro",
+    "s3Key": "business-rules/financeiro.md",
+    "pathPatterns": [
+      "financ",
+      "payment",
+      "pagamento",
+      "billing",
+      "cobranc",
+      "titulo",
+      "parcela",
+      "balance",
+      "caixa",
+      "dre",
+      "conciliac",
+      "clini-pago",
+      "receb"
+    ]
+  }
+]
