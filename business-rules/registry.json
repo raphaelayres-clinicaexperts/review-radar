@@ -17,5 +17,22 @@
       "clini-pago",
       "receb"
     ]
+  },
+  {
+    "domain": "cashback",
+    "s3Key": "business-rules/cashback.md",
+    "pathPatterns": [
+      "cashback",
+      "saldo",
+      "balance",
+      "personbalance",
+      "credit_amount",
+      "cashback_amount",
+      "cashback_expiration",
+      "parent_operation_id",
+      "balancetype",
+      "convertion",
+      "expired"
+    ]
   }
 ]
